@@ -1,0 +1,592 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wintertoernooi Demo – Tennisclub</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#fafafa; color:#222; }
+  header { background:#0b3d91; color:#fff; padding:16px 20px; }
+  header h1 { margin:0; font-size:22px; }
+  header p { margin:4px 0 0; opacity:.9 }
+  .container { max-width:1200px; margin: 24px auto; padding:0 16px; }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .nav button { border:1px solid #ddd; background:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .nav button.active { background:#0b3d91; color:#fff; border-color:#0b3d91; }
+  .card { background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 0 rgba(0,0,0,.03); }
+  h2 { margin:0 0 12px; font-size:20px; }
+  h3 { margin:12px 0 8px; font-size:16px; }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  th, td { border-bottom:1px solid #eee; padding:8px; text-align:left; font-size:14px; }
+  th { background:#f5f7fb; }
+  .grid { display:grid; gap:16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .pill { font-size:12px; background:#eef2ff; color:#0b3d91; padding:2px 8px; border-radius:999px; border:1px solid #dbe1ff; }
+  .muted { color:#666; }
+  .flex { display:flex; align-items:center; gap:8px; }
+  .right { float:right; }
+  .btn { border:1px solid #ddd; background:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .btn.primary { background:#0b3d91; color:#fff; border-color:#0b3d91; }
+  .btn.warn { background:#fff7e6; border-color:#ffd591; }
+  .small { font-size:12px; }
+  .success { color:#0b914b; }
+  .danger { color:#b00020; }
+  .nowrap { white-space:nowrap; }
+  .hidden { display:none; }
+  .footer { font-size:12px; color:#666; padding:16px; text-align:center; }
+  .tag { display:inline-block; padding:2px 6px; border:1px solid #ddd; border-radius:6px; font-size:12px; background:#fff; }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; background:#f2f2f2; padding:2px 6px; border-radius:4px; border:1px solid #e3e3e3; }
+  input[type="number"] { width:70px; }
+  @media (max-width:800px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Wintertoernooi – Demo</h1>
+  <p>Inschrijven → Automatische indeling → Matchen → Scores → Klassement → Export (Excel)</p>
+</header>
+
+<div class="container">
+  <div class="nav">
+    <button class="active" data-view="inschrijven">1) Inschrijven</button>
+    <button data-view="indeling">2) Indeling</button>
+    <button data-view="schema">3) Matchschema & Scores</button>
+    <button data-view="klassement">4) Klassement</button>
+    <button data-view="export">5) Export</button>
+    <span class="pill">Demo met dummy spelers</span>
+  </div>
+
+  <!-- Inschrijven -->
+  <section id="inschrijven" class="card">
+    <h2>Inschrijven (demo)</h2>
+    <p class="muted">Vul een demo-inschrijving in. In het echt komt dit als formulier op jullie site, met bevestigingsmail en GDPR.</p>
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>Nieuw: speler toevoegen</h3>
+        <div class="grid grid-2">
+          <div>
+            <label>Naam</label><br>
+            <input id="name" placeholder="Voornaam Achternaam">
+          </div>
+          <div>
+            <label>E-mail</label><br>
+            <input id="email" placeholder="naam@example.com">
+          </div>
+          <div>
+            <label>GSM</label><br>
+            <input id="phone" placeholder="+32 ...">
+          </div>
+          <div>
+            <label>Reeks vorig jaar</label><br>
+            <select id="prevLevel">
+              <option value="1">1 (sterkste)</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4 (instromers)</option>
+            </select>
+          </div>
+          <div>
+            <label>Bondspunten</label><br>
+            <input type="number" id="rating" value="500" min="0" step="1">
+          </div>
+        </div>
+        <br>
+        <button class="btn primary" onclick="addPlayer()">Inschrijving toevoegen</button>
+        <span class="small muted">Samenvatting verschijnt hieronder.</span>
+      </div>
+
+      <div class="card">
+        <h3>Huidige inschrijvingen</h3>
+        <table id="playersTable">
+          <thead><tr><th>Naam</th><th>Reeks vj</th><th>Punten (bond)</th><th class="nowrap">Actie</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Demo uitleg</h3>
+        <ul>
+          <li>We sorteren <b>per niveau</b> op bondspunten en maken subreeksen (1a, 1b, …) met max. 9 spelers.</li>
+          <li>Scores: <b>win 2</b>, <b>gelijk 1</b>, <b>verlies 0</b>.</li>
+          <li><b>Onderste 2</b> zakken bij het afsluiten van een ronde. (Promotie optioneel.)</li>
+          <li>Alle data kan worden <b>geëxporteerd naar Excel</b>.</li>
+        </ul>
+        <button class="btn" onclick="loadDummy()">Laad dummy spelers</button>
+        <span id="dummyStatus" class="small success"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Indeling -->
+  <section id="indeling" class="card hidden">
+    <div class="flex">
+      <h2>Automatische indeling in (sub)reeksen</h2>
+      <button class="btn primary right" onclick="createGroups()">Reeksen aanmaken / herverdelen</button>
+    </div>
+    <p class="muted">Indeling primair op reeks van vorig jaar. Binnen die reeks sorteren we op bondspunten en splitsen we in subreeksen met maximaal 9 spelers.</p>
+    <div id="groups"></div>
+  </section>
+
+  <!-- Schema & Scores -->
+  <section id="schema" class="card hidden">
+    <div class="flex">
+      <h2>Matchschema & Scores</h2>
+      <button class="btn primary right" onclick="generateSchedules()">Genereer schema's</button>
+    </div>
+    <p class="muted">Per subreeks een round-robin schema. Vul uitslagen in en bevestig.</p>
+    <div id="schedules"></div>
+  </section>
+
+  <!-- Klassement -->
+  <section id="klassement" class="card hidden">
+    <div class="flex">
+      <h2>Live klassement per (sub)reeks</h2>
+      <button class="btn right" onclick="recalcStandings()">Herbereken</button>
+      <button class="btn warn right" onclick="closeRound()">Ronde afsluiten (degradatie)</button>
+    </div>
+    <div id="standings"></div>
+    <div id="movementPreview" class="card hidden">
+      <h3>Voorgestelde bewegingen na ronde</h3>
+      <div id="movementList"></div>
+      <button class="btn primary" onclick="applyMovements()">Bevestig en toepassen</button>
+    </div>
+  </section>
+
+  <!-- Export -->
+  <section id="export" class="card hidden">
+    <h2>Export & Rapporten</h2>
+    <p class="muted">Download CSV-bestanden die klaar zijn voor Excel of synchroniseer live met Google Sheets in de echte versie.</p>
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>Inschrijvingen</h3>
+        <button class="btn" onclick="downloadCSV('inschrijvingen.csv', exportPlayersCSV())">Download CSV</button>
+      </div>
+      <div class="card">
+        <h3>Reeksen & Subreeksen</h3>
+        <button class="btn" onclick="downloadCSV('reeksen.csv', exportGroupsCSV())">Download CSV</button>
+      </div>
+      <div class="card">
+        <h3>Matchen & Scores</h3>
+        <button class="btn" onclick="downloadCSV('matchen.csv', exportMatchesCSV())">Download CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    Demo door Bee Seen – alles client-side. Voor productie koppelen we dit in WordPress met formulieren, gebruikersrechten en automatische e-mails.
+  </div>
+</div>
+
+<script>
+// --- State ---
+let players = []; // {id, name, email, phone, prevLevel, rating}
+let groups = {};  // { "1a": [playerIds], ... }
+let schedules = {}; // { "1a": [ {home,away,homeGames,awayGames,result} ] }
+let standings = {}; // { "1a": { playerId: {played,w,d,l,pts,sgf,sgA} } }
+
+// --- Helpers ---
+function byId(id){ return document.getElementById(id); }
+function $(q){ return document.querySelector(q); }
+function $all(q){ return Array.from(document.querySelectorAll(q)); }
+
+function renderPlayers(){
+  const tbody = byId("playersTable").querySelector("tbody");
+  tbody.innerHTML = players.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td>${p.prevLevel}</td>
+      <td>${p.rating}</td>
+      <td><button class="btn small" onclick="removePlayer('${p.id}')">Verwijder</button></td>
+    </tr>
+  `).join("");
+}
+
+function addPlayer(){
+  const name = byId("name").value.trim();
+  const email = byId("email").value.trim();
+  const phone = byId("phone").value.trim();
+  const prevLevel = parseInt(byId("prevLevel").value,10);
+  const rating = parseInt(byId("rating").value,10) || 0;
+  if(!name){ alert("Naam is verplicht."); return; }
+  const id = "P"+Math.random().toString(36).slice(2,9);
+  players.push({id,name,email,phone,prevLevel,rating});
+  renderPlayers();
+  byId("name").value=""; byId("email").value=""; byId("phone").value=""; byId("rating").value="500";
+}
+
+function removePlayer(id){
+  players = players.filter(p => p.id!==id);
+  renderPlayers();
+}
+
+function loadDummy(){
+  const sample = [
+    // Level 1
+    ["Lina Peeters",1,890],["Tom Janssens",1,870],["Milan Vermeulen",1,840],["Jef Willems",1,810],
+    ["Sofie Jacobs",1,800],["Arne Martens",1,790],["Lotte Smeets",1,770],["Nora Claes",1,760],
+    ["Kobe Maes",1,750],["Fleur Goossens",1,735],["Bram Hermans",1,720],["Elin Boons",1,710],
+    // Level 2
+    ["Noah Aerts",2,660],["Tuur Mertens",2,650],["Lars Ceulemans",2,640],["Roos Van de Velde",2,635],
+    ["Ella Goris",2,620],["Finn Driessen",2,610],["Jana Pauwels",2,600],["Ibe Nys",2,595],
+    ["Liam Meeus",2,590],["Amber Gevers",2,585],["Mira Peeters",2,580],
+    // Level 3
+    ["Seppe Hans",3,520],["Jules Verstraeten",3,510],["Hanne De Smet",3,505],["Yara Wauters",3,500],
+    ["Elio Vandevelde",3,495],["Nina Van Dam",3,490],["Oona Cox",3,485],["Tibo Segers",3,480],
+    // Level 4
+    ["Pieter Everaerts",4,430],["Bas Wuyts",4,425],["Lise Cools",4,420],["Jolien Houben",4,415],
+    ["Ward Van Hoof",4,410],["Helene Broeckx",4,405],["Jasper Lenaerts",4,400],["Mats Sleurs",4,395]
+  ];
+  players = sample.map(([name,prevLevel,rating],i)=>({id:"D"+i,name,email:"",phone:"",prevLevel,rating}));
+  renderPlayers();
+  byId("dummyStatus").textContent = "Dummy spelers geladen ✓";
+}
+
+// Grouping utility
+function createGroups(){
+  groups = {};
+  const byLevel = {1:[],2:[],3:[],4:[]};
+  players.forEach(p => { byLevel[p.prevLevel].push(p); });
+  for(const lvl of [1,2,3,4]){
+    const arr = byLevel[lvl].slice().sort((a,b)=>b.rating - a.rating);
+    // chunk in groups of 9
+    let idx=0, g=0;
+    while(idx < arr.length){
+      const chunk = arr.slice(idx, idx+9);
+      const label = lvl + String.fromCharCode(97 + g); // 1a,1b,1c...
+      groups[label] = chunk.map(p=>p.id);
+      idx += 9; g++;
+    }
+  }
+  renderGroups();
+  // reset schedules/standings
+  schedules = {};
+  standings = {};
+  byId("schedules").innerHTML="";
+  byId("standings").innerHTML="";
+  byId("movementPreview").classList.add("hidden");
+}
+
+function renderGroups(){
+  const container = byId("groups");
+  if(Object.keys(groups).length===0){
+    container.innerHTML = `<p class='muted'>Nog geen indeling. Klik op <b>Reeksen aanmaken</b>.</p>`;
+    return;
+  }
+  let html = "";
+  const entries = Object.entries(groups).sort((a,b)=>{
+    const [la,_a]=a,[lb,_b]=b;
+    const lvlA=parseInt(la[0],10), lvlB=parseInt(lb[0],10);
+    if(lvlA!==lvlB) return lvlA - lvlB;
+    return la.localeCompare(lb);
+  });
+  entries.forEach(([label, ids])=>{
+    html += `<div class="card">
+      <div class="flex">
+        <h3>Reeks ${label.toUpperCase()} <span class="pill">${ids.length} spelers</span></h3>
+        <span class="muted small">Max 9 per subreeks</span>
+      </div>
+      <table><thead><tr><th>#</th><th>Naam</th><th>Bondspunten</th></tr></thead><tbody>
+      ${ids.map((pid,i)=>{
+        const p = players.find(x=>x.id===pid);
+        return `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.rating}</td></tr>`;
+      }).join("")}
+      </tbody></table>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// Schedule generation
+function generateRoundRobin(ids){
+  // Standard round-robin (circle method) for N players
+  const n = ids.length;
+  const isOdd = n % 2 === 1;
+  const list = ids.slice();
+  if(isOdd) list.push(null); // bye
+  const rounds = list.length - 1;
+  const half = list.length / 2;
+  const fixtures = [];
+  for(let r=0;r<rounds;r++){
+    for(let i=0;i<half;i++){
+      const home = list[i];
+      const away = list[list.length-1-i];
+      if(home && away){
+        fixtures.push({round:r+1, home, away, result:null});
+      }
+    }
+    // rotate
+    const fixed = list[0];
+    const rest = list.slice(1);
+    rest.unshift(rest.pop());
+    list.splice(0, list.length, fixed, ...rest);
+  }
+  return fixtures;
+}
+
+function playerName(id){ const p=players.find(x=>x.id===id); return p?p.name:"?"; }
+
+function generateSchedules(){
+  if(Object.keys(groups).length===0){ alert("Maak eerst de reeksen aan."); return; }
+  schedules = {};
+  for(const [label, ids] of Object.entries(groups)){
+    if(ids.length<2){ schedules[label]=[]; continue; }
+    schedules[label] = generateRoundRobin(ids);
+  }
+  renderSchedules();
+  recalcStandings();
+}
+
+function renderSchedules(){
+  const container = byId("schedules");
+  let html = "";
+  const entries = Object.entries(schedules).sort((a,b)=>a[0].localeCompare(b[0]));
+  entries.forEach(([label, matches])=>{
+    html += `<div class="card">
+      <h3>Reeks ${label.toUpperCase()} – Schema</h3>
+      ${matches.length===0 ? "<p class='muted'>Te weinig spelers voor matchen.</p>" :
+      `<table><thead>
+        <tr><th>Ronde</th><th>Thuis</th><th>Uit</th><th>Uitslag</th><th>Bevestigd</th></tr>
+      </thead><tbody>
+      ${matches.map((m,idx)=>{
+        const rid = `${label}-${idx}`;
+        const res = m.result || {type:"", confirm:false};
+        return `<tr>
+          <td>${m.round}</td>
+          <td>${playerName(m.home)}</td>
+          <td>${playerName(m.away)}</td>
+          <td>
+            <select onchange="setResult('${label}',${idx},this.value)">
+              <option value="">-- kies --</option>
+              <option value="H" ${res.type==="H"?"selected":""}>Thuis wint (2-0p)</option>
+              <option value="D" ${res.type==="D"?"selected":""}>Gelijk (1-1p)</option>
+              <option value="A" ${res.type==="A"?"selected":""}>Uit wint (0-2p)</option>
+            </select>
+          </td>
+          <td>
+            <input type="checkbox" ${res.confirm?"checked":""} onchange="toggleConfirm('${label}',${idx},this.checked)">
+            <span class="small muted">bevestig</span>
+          </td>
+        </tr>`;
+      }).join("")}
+      </tbody></table>`}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function setResult(label, idx, v){
+  const m = schedules[label][idx];
+  m.result = m.result || {};
+  m.result.type = v;
+  m.result.confirm = m.result.confirm || false;
+  recalcStandings();
+}
+function toggleConfirm(label, idx, checked){
+  const m = schedules[label][idx];
+  m.result = m.result || {};
+  m.result.confirm = checked;
+  recalcStandings();
+}
+
+// Standings calculation
+function recalcStandings(){
+  standings = {};
+  for(const [label, ids] of Object.entries(groups)){
+    const table = {};
+    ids.forEach(pid => table[pid] = {played:0,w:0,d:0,l:0,pts:0});
+    const ms = schedules[label] || [];
+    ms.forEach(m=>{
+      if(!m.result || !m.result.type || !m.result.confirm) return; // only confirmed count
+      const home = table[m.home], away = table[m.away];
+      home.played++; away.played++;
+      if(m.result.type==="H"){ home.w++; away.l++; home.pts+=2; }
+      if(m.result.type==="A"){ away.w++; home.l++; away.pts+=2; }
+      if(m.result.type==="D"){ home.d++; away.d++; home.pts+=1; away.pts+=1; }
+    });
+    standings[label]=table;
+  }
+  renderStandings();
+}
+
+function renderStandings(){
+  const container = byId("standings");
+  let html="";
+  const entries = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
+  entries.forEach(([label, ids])=>{
+    const table = standings[label] || {};
+    const rows = ids.map(pid=>{
+      const s = table[pid] || {played:0,w:0,d:0,l:0,pts:0};
+      return {pid, ...s};
+    }).sort((a,b)=> b.pts - a.pts);
+    html += `<div class="card">
+      <h3>Reeks ${label.toUpperCase()} – Klassement</h3>
+      <table><thead>
+        <tr><th>#</th><th>Speler</th><th>G</th><th>W</th><th>GL</th><th>V</th><th>Punten</th></tr>
+      </thead><tbody>
+      ${rows.map((r,i)=>`
+        <tr>
+          <td>${i+1}</td>
+          <td>${playerName(r.pid)}</td>
+          <td>${r.played}</td>
+          <td>${r.w}</td>
+          <td>${r.d}</td>
+          <td>${r.l}</td>
+          <td><b>${r.pts}</b></td>
+        </tr>
+      `).join("")}
+      </tbody></table>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function closeRound(){
+  // Determine bottom 2 of each group and propose movements
+  if(Object.keys(groups).length===0){ alert("Geen reeksen."); return; }
+  const proposals = []; // {playerId, from, to}
+  const subByLevel = {}; // track order like 1a,1b,1c per level
+  Object.keys(groups).forEach(lbl=>{
+    const lvl = parseInt(lbl[0],10);
+    subByLevel[lvl] = subByLevel[lvl] || [];
+    subByLevel[lvl].push(lbl);
+  });
+  for(const lvl in subByLevel){
+    subByLevel[lvl].sort((a,b)=> a.localeCompare(b));
+  }
+
+  // collect bottom 2
+  for(const [label, ids] of Object.entries(groups)){
+    const table = standings[label] || {};
+    const rows = ids.map(pid=>({pid, pts:(table[pid]?.pts)||0}))
+                    .sort((a,b)=> a.pts - b.pts); // ascending (bottom first)
+    const losers = rows.slice(0, Math.min(2, rows.length)); // bottom 2
+    losers.forEach(L=>{
+      // move within same level if possible (e.g., 1a -> 1b). Otherwise to next level's first subreeks.
+      const lvl = parseInt(label[0],10);
+      const subs = subByLevel[lvl];
+      const idx = subs.indexOf(label);
+      let to = null;
+      if(idx < subs.length-1){
+        // move to next subreeks in same level
+        to = subs[idx+1];
+      } else {
+        // move to next level's 'a'
+        const nextLevel = lvl+1;
+        if(subByLevel[nextLevel]){
+          // ensure next level has at least a subreeks; if not, create  (demo create empty)
+          if(subByLevel[nextLevel].length===0){
+            const newLabel = nextLevel+"a";
+            groups[newLabel] = [];
+            subByLevel[nextLevel].push(newLabel);
+          }
+          to = subByLevel[nextLevel][0];
+        } else {
+          to = null; // already lowest level
+        }
+      }
+      if(to){ proposals.push({playerId:L.pid, from:label, to}); }
+    });
+  }
+
+  // show preview
+  const list = proposals.map(p=>`<li><b>${playerName(p.playerId)}</b>: ${p.from.toUpperCase()} → ${p.to.toUpperCase()}</li>`).join("");
+  byId("movementList").innerHTML = `<ul>${list || "<li class='muted'>Geen bewegingen (onvoldoende bevestigde matchen).</li>"}</ul>`;
+  byId("movementPreview").classList.remove("hidden");
+  window._proposals = proposals;
+}
+
+function applyMovements(){
+  const props = window._proposals || [];
+  if(props.length===0){ alert("Geen bewegingen toegepast."); return; }
+  // apply: remove from old, add to new (respect max 9 by simple push; demo ignores overflow checks)
+  props.forEach(p=>{
+    groups[p.from] = (groups[p.from]||[]).filter(id=>id!==p.playerId);
+    groups[p.to] = (groups[p.to]||[]);
+    if(groups[p.to].indexOf(p.playerId)===-1){
+      groups[p.to].push(p.playerId);
+    }
+    // update player's prevLevel to reflect new main level
+    const pl = players.find(x=>x.id===p.playerId);
+    if(pl){ pl.prevLevel = parseInt(p.to[0],10); }
+  });
+  // re-render views
+  renderGroups();
+  generateSchedules();
+  recalcStandings();
+  byId("movementPreview").classList.add("hidden");
+  alert("Bewegingen toegepast.");
+}
+
+// --- Export ---
+function toCSV(rows){
+  return rows.map(r=> r.map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+}
+
+function exportPlayersCSV(){
+  const rows = [["id","naam","email","gsm","reeks_vorig_jaar","bondspunten"]];
+  players.forEach(p=> rows.push([p.id,p.name,p.email,p.phone,p.prevLevel,p.rating]));
+  return toCSV(rows);
+}
+function exportGroupsCSV(){
+  const rows = [["subreeks","volgorde","player_id","naam","bondspunten"]];
+  const entries = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
+  entries.forEach(([label, ids])=>{
+    ids.forEach((pid,i)=>{
+      const p = players.find(x=>x.id===pid);
+      rows.push([label, i+1, pid, p?p.name:"", p?p.rating:""]);
+    });
+  });
+  return toCSV(rows);
+}
+function exportMatchesCSV(){
+  const rows = [["subreeks","ronde","home_id","home_naam","away_id","away_naam","resultaat","home_punten","away_punten","bevestigd"]];
+  for(const [label, ms] of Object.entries(schedules)){
+    ms.forEach(m=>{
+      const res = m.result || {};
+      let homePts=0, awayPts=0, r="";
+      if(res.type==="H"){ homePts=2; r="H"; }
+      if(res.type==="A"){ awayPts=2; r="A"; }
+      if(res.type==="D"){ homePts=1; awayPts=1; r="D"; }
+      rows.push([label, m.round, m.home, playerName(m.home), m.away, playerName(m.away), r, homePts, awayPts, res.confirm? "ja":"nee"]);
+    });
+  }
+  return toCSV(rows);
+}
+
+function downloadCSV(filename, content){
+  const blob = new Blob([content], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// --- Navigation ---
+$all(".nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    $all(".nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const view = btn.getAttribute("data-view");
+    ["inschrijven","indeling","schema","klassement","export"].forEach(id=>{
+      byId(id).classList.add("hidden");
+    });
+    byId(view).classList.remove("hidden");
+  });
+});
+
+// preload dummy for quick demo
+loadDummy();
+createGroups();
+generateSchedules();
+recalcStandings();
+</script>
+</body>
+</html>
